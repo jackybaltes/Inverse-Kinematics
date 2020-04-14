@@ -1,0 +1,1059 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <title>Inverse Kinematics</title>
+
+        <link rel="stylesheet" href="css/reveal.css">
+        <link rel="stylesheet" href="css/theme/ntnuerc.css">
+
+        <!-- Theme used for syntax highlighting of code -->
+        <link rel="stylesheet" href="lib/css/zenburn.css">
+        <script src="https://daybrush.com/scenejs/release/latest/dist/scene.min.js"></script>
+		
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+        <script src="js/ntnu.js"></script>
+    </head>
+    <body>
+        <div class="reveal">
+        <div class="slides">
+            
+<section id="first" data-state="first">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+
+<h1> Inverse Kinematics</h1>
+
+   <div class="author" style="text-align:center;">
+    
+<p>
+      Jacky Baltes<br>
+      National Taiwan Normal University<br>
+      Taipei, Taiwan<br>
+      <a href="mailto:jacky.baltes@ntnu.edu.tw">jacky.baltes@ntnu.edu.tw</a><br>
+</p>
+
+   </div>
+   <div class="date">
+    14 April 2020
+   </div>
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-ac183c39-6700-4c6d-8de3-e527c4d12045" ><span id="id-ac183c39-6700-4c6d-8de3-e527c4d12045"><img id="img-id-ac183c39-6700-4c6d-8de3-e527c4d12045"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-c3810cdd-d522-43bb-8ada-6e79400be599" ><span id="id-c3810cdd-d522-43bb-8ada-6e79400be599"><img id="img-id-c3810cdd-d522-43bb-8ada-6e79400be599" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00003_frag_00001" data-state="slide_00003_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+<div class="jb-input jb-render jb-code" style="text-align:center">
+
+<div class="jb-input-code jb-render">
+<div class="highlight" style="background: #f8f8f8; color:#101010;display=inline-block;"><pre style="line-height: 125%"><span></span><span style="color: #408080; font-style: italic"># These libraries provide us with the most often used features</span>
+
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">matplotlib.pyplot</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">plt</span>
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">matplotlib.patches</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">mpatches</span>
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">numpy</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">np</span>
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">math</span>
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">random</span>
+
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">jb_geometry</span>
+</pre></div>
+
+</div>
+
+</div>
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-8f55828c-7c4b-4538-bafe-48d72ea83e80" ><span id="id-8f55828c-7c4b-4538-bafe-48d72ea83e80"><img id="img-id-8f55828c-7c4b-4538-bafe-48d72ea83e80"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-f78b637c-986e-4754-93c7-aa054803944d" ><span id="id-f78b637c-986e-4754-93c7-aa054803944d"><img id="img-id-f78b637c-986e-4754-93c7-aa054803944d" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00004_frag_00001" data-state="slide_00004_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+<div class="document" id="problem-definition">
+<h1 class="title">Problem Definition</h1>
+<div class="jb-text docutils container">
+<p>Forward Kinematics</p>
+<ul class="simple">
+<li>From joint coordinates to coordinates of end effector in inertial frame</li>
+</ul>
+<p>Inverse Kinematics</p>
+<ul class="simple">
+<li>From target coordinates of end effector in the inertial frame to joint coordinates</li>
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-5d1250ae-fc29-4985-a16e-bdd40dc04a49" ><span id="id-5d1250ae-fc29-4985-a16e-bdd40dc04a49"><img id="img-id-5d1250ae-fc29-4985-a16e-bdd40dc04a49"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-1bd0a33a-3cb2-4c92-bb44-cba338fa39d8" ><span id="id-1bd0a33a-3cb2-4c92-bb44-cba338fa39d8"><img id="img-id-1bd0a33a-3cb2-4c92-bb44-cba338fa39d8" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+
+
+  show JB at left
+
+
+  JB """Forward kinematics is useful in some applications, since we can find the coordinates of the end
+  effector in the inertial frame given the joint coordinates"""
+
+
+  JB """But more often we have to solve the inverse problem: given target coordinates for the end effector, find 
+  the joint coordinates"""
+</aside>
+
+
+
+</section>
+<section id="slide_00005_frag_00001" data-state="slide_00005_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+
+<h1>General Formulation</h1>
+
+<div class="jb-text" style="font-size:0.7em">
+Target is a transformation Matrix for forward kinematics<br>
+\[
+  H = \left[ 
+            \begin{array}{cc}
+              R & o \\
+              0 & 1 \\
+            \end{array}
+      \right]
+\]
+
+<p>Find the compound transformation matrix
+\[
+  T_{n}^{0}(q_1, q_2, .... q_n) = H
+\]
+</p>
+
+\[
+  T_{n}^{0}(q_1, q_2, .... q_n) = A_1(q_1) A_2(q_2) A_3(q_3) ... A_n(q_n)
+\]
+<p>So we must find the joint variables q_1, q_2, ... q_n such that 
+
+\[
+  A_1(q_1) A_2(q_2) A_3(q_3) ... A_n(q_n) = H
+\]
+</div>
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-035da6e4-96c9-43ab-a14d-a74d2cc3da9e" ><span id="id-035da6e4-96c9-43ab-a14d-a74d2cc3da9e"><img id="img-id-035da6e4-96c9-43ab-a14d-a74d2cc3da9e"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-3d35edf3-7072-435e-83aa-8f66889a6d07" ><span id="id-3d35edf3-7072-435e-83aa-8f66889a6d07"><img id="img-id-3d35edf3-7072-435e-83aa-8f66889a6d07" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00006_frag_00001" data-state="slide_00006_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+<div class="jb-input jb-render jb-code" style="text-align:center">
+
+<div class="jb-input-code jb-render">
+<div class="highlight" style="background: #f8f8f8; color:#101010;display=inline-block;"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">sympy</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">sym</span>
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">jb_geometry</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">jbg</span>
+
+m1 <span style="color: #666666">=</span> jbg<span style="color: #666666">.</span>translate( <span style="color: #666666">0</span>, <span style="color: #666666">0.22</span>, <span style="color: #666666">0.4</span> )
+<span style="color: #008000; font-weight: bold">print</span>(m1)
+</pre></div>
+
+</div>
+
+</div>
+<div class="jb-print jb-render">
+<div class="jb-output jb-render code" style="text-align:center">
+<div class="jb-stdout code" style="display:inline-block; width:90%">
+<pre >
+[[1.   0.   0.   0.  ]
+ [0.   1.   0.   0.22]
+ [0.   0.   1.   0.4 ]
+ [0.   0.   0.   1.  ]]
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-4c06fb05-28a1-475d-9fea-a5bc475c2e77" ><span id="id-4c06fb05-28a1-475d-9fea-a5bc475c2e77"><img id="img-id-4c06fb05-28a1-475d-9fea-a5bc475c2e77"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-88ecbc6f-a948-456f-bf14-72aff2ce120c" ><span id="id-88ecbc6f-a948-456f-bf14-72aff2ce120c"><img id="img-id-88ecbc6f-a948-456f-bf14-72aff2ce120c" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00007_frag_00001" data-state="slide_00007_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+<div class="jb-input jb-render jb-code" style="text-align:center">
+
+<div class="jb-input-code jb-render">
+<div class="highlight" style="background: #f8f8f8; color:#101010;display=inline-block;"><pre style="line-height: 125%"><span></span><span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">sympy</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">sym</span>
+<span style="color: #008000; font-weight: bold">from</span> <span style="color: #0000FF; font-weight: bold">sympy</span> <span style="color: #008000; font-weight: bold">import</span> init_printing
+
+<span style="color: #008000; font-weight: bold">import</span> <span style="color: #0000FF; font-weight: bold">jb_geometry</span> <span style="color: #008000; font-weight: bold">as</span> <span style="color: #0000FF; font-weight: bold">jbg</span>
+init_printing()
+
+theta1 <span style="color: #666666">=</span> sym<span style="color: #666666">.</span>Symbol( <span style="color: #BA2121">&#39;theta1&#39;</span> )
+
+m1 <span style="color: #666666">=</span> sym<span style="color: #666666">.</span>Matrix( [ [ <span style="color: #666666">1</span>, <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, <span style="color: #666666">0</span> ], [ <span style="color: #666666">0</span>, <span style="color: #666666">1</span>, <span style="color: #666666">0</span>, <span style="color: #666666">0.22</span> ], [ <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, <span style="color: #666666">1</span>, <span style="color: #666666">0.4</span> ], [ <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, <span style="color: #666666">1</span> ] ] )
+
+m2 <span style="color: #666666">=</span> sym<span style="color: #666666">.</span>Matrix( [ [ <span style="color: #666666">1</span>, <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, ], 
+              [ <span style="color: #666666">0</span>, sym<span style="color: #666666">.</span>cos(<span style="color: #BA2121">&#39;theta1&#39;</span>), sym<span style="color: #666666">.</span>sin(<span style="color: #BA2121">&#39;theta1&#39;</span>), <span style="color: #666666">0</span> ], 
+              [ <span style="color: #666666">0</span>, <span style="color: #666666">-</span>sym<span style="color: #666666">.</span>sin(<span style="color: #BA2121">&#39;theta1&#39;</span>), sym<span style="color: #666666">.</span>cos(<span style="color: #BA2121">&#39;theta1&#39;</span>), <span style="color: #666666">0</span> ], 
+              [ <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, <span style="color: #666666">0</span>, <span style="color: #666666">1</span> ] ] )
+T1 <span style="color: #666666">=</span> m1 <span style="color: #666666">*</span> m2
+sym<span style="color: #666666">.</span>pprint(T1)
+</pre></div>
+
+</div>
+
+</div>
+<div class="jb-print jb-render">
+<div class="jb-output jb-render code" style="text-align:center">
+<div class="jb-stdout code" style="display:inline-block; width:90%">
+<pre >
+⎡1     0         0      0  ⎤
+⎢                          ⎥
+⎢0  cos(θ₁)   sin(θ₁)  0.22⎥
+⎢                          ⎥
+⎢0  -sin(θ₁)  cos(θ₁)  0.4 ⎥
+⎢                          ⎥
+⎣0     0         0      1  ⎦
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-a314b63d-d3c7-4211-85f3-b5f2287d8a37" ><span id="id-a314b63d-d3c7-4211-85f3-b5f2287d8a37"><img id="img-id-a314b63d-d3c7-4211-85f3-b5f2287d8a37"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-9feebdee-a96e-4fce-8b5e-53c587aa4e4e" ><span id="id-9feebdee-a96e-4fce-8b5e-53c587aa4e4e"><img id="img-id-9feebdee-a96e-4fce-8b5e-53c587aa4e4e" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00008_frag_00001" data-state="slide_00008_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+<div class="document" id="expanding-the-matrix-equations">
+<h1 class="title">Expanding the Matrix Equations</h1>
+<div class="jb-text docutils container">
+<p>Expanding the matrix leads to non-linear equations with n unknowns for an n joint robot</p>
+<p>Difficult to find closed form solution</p>
+<p>Not all mathematical solutions can be realized since we have joint limits</p>
+</div>
+</div>
+
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-bfa7534a-2331-4c1d-b8b0-26986777eaf7" ><span id="id-bfa7534a-2331-4c1d-b8b0-26986777eaf7"><img id="img-id-bfa7534a-2331-4c1d-b8b0-26986777eaf7"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-140b2867-0fc9-4b0c-91a4-88e536ecf478" ><span id="id-140b2867-0fc9-4b0c-91a4-88e536ecf478"><img id="img-id-140b2867-0fc9-4b0c-91a4-88e536ecf478" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00009_frag_00001" data-state="slide_00009_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+
+<h1>Amibguities</h1>
+
+<div class="jb-text">
+<p>Ambiguities means that there is many possible solutions</p>
+
+<p>Even on simple robots, we often have infinite solutions</p>
+
+<div style="text-align:center;width:50%">
+<span id="id-83045918-2066-4d58-91f0-69e5a94e3b9e" ><span id="id-83045918-2066-4d58-91f0-69e5a94e3b9e"><img id="img-id-83045918-2066-4d58-91f0-69e5a94e3b9e"     src="assets/images/ik1.png"/></span>
+</span>
+
+</div>
+</div>
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-14a86558-e987-49fe-95c0-6e9825bd6cf8" ><span id="id-14a86558-e987-49fe-95c0-6e9825bd6cf8"><img id="img-id-14a86558-e987-49fe-95c0-6e9825bd6cf8"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-73ac290d-45d8-4c7e-b0fc-3a7f2a5febaf" ><span id="id-73ac290d-45d8-4c7e-b0fc-3a7f2a5febaf"><img id="img-id-73ac290d-45d8-4c7e-b0fc-3a7f2a5febaf" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00010_frag_00001" data-state="slide_00010_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+<div class="document" id="kinematic-decoupling">
+<h1 class="title">Kinematic Decoupling</h1>
+<div class="jb-text docutils container">
+<p>Break problem up into smaller subproblems</p>
+<p>Separate the motion of the robot arm and the end effector</p>
+</div>
+</div>
+
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-ea0be73c-3c5b-4f3f-bf15-eea1d30ecf11" ><span id="id-ea0be73c-3c5b-4f3f-bf15-eea1d30ecf11"><img id="img-id-ea0be73c-3c5b-4f3f-bf15-eea1d30ecf11"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-8614f1df-167a-4a9d-936b-250248282f1b" ><span id="id-8614f1df-167a-4a9d-936b-250248282f1b"><img id="img-id-8614f1df-167a-4a9d-936b-250248282f1b" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00011_frag_00001" data-state="slide_00011_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+<div class="document" id="decoupling-of-humanoid-robot-leg-in-lateral-plane">
+<h1 class="title">Decoupling of Humanoid Robot Leg in Lateral Plane</h1>
+<div class="jb-text docutils container">
+Kinematic decoupling into just two joints (lower leg, length 0.4m) and (upper leg 0.5m)</div>
+</div>
+
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-a0beeb6b-07f9-410f-a069-a9da620ef694" ><span id="id-a0beeb6b-07f9-410f-a069-a9da620ef694"><img id="img-id-a0beeb6b-07f9-410f-a069-a9da620ef694"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-c4232d08-f687-4975-a4dc-3e74c8a390f9" ><span id="id-c4232d08-f687-4975-a4dc-3e74c8a390f9"><img id="img-id-c4232d08-f687-4975-a4dc-3e74c8a390f9" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00012_frag_00001" data-state="slide_00012_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+
+<h1>Two Link Inverse Kinematics Problem</h1>
+
+<div class="jb-figure">
+<span id="id-d0bcf150-17f9-4663-a110-6940995a581d" ><span id="id-d0bcf150-17f9-4663-a110-6940995a581d"><img id="img-id-d0bcf150-17f9-4663-a110-6940995a581d"     src="assets/images/ik2.svg"/></span>
+</span>
+
+</div>
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-a9179df2-e2ae-4077-9b72-5b23f3c6e168" ><span id="id-a9179df2-e2ae-4077-9b72-5b23f3c6e168"><img id="img-id-a9179df2-e2ae-4077-9b72-5b23f3c6e168"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-cff5dd05-9ad9-49a2-8eb2-d3d072c4980f" ><span id="id-cff5dd05-9ad9-49a2-8eb2-d3d072c4980f"><img id="img-id-cff5dd05-9ad9-49a2-8eb2-d3d072c4980f" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00013_frag_00001" data-state="slide_00013_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+
+<h1>Cosine Law</h1>
+
+<div class="jb-text">
+\[
+  l_3^2 = l_1^2 + l_2^2 - 2l_1l_2cos(\alpha_2)
+\]
+
+<p>We can then calculate the angle \(α_2\), since \(l_1\),\(l_2\),\(\theta_1\),\(\theta_2\) are all known</p>
+</div>
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-56b81606-aa2d-49a5-844e-d08e1dbc78f9" ><span id="id-56b81606-aa2d-49a5-844e-d08e1dbc78f9"><img id="img-id-56b81606-aa2d-49a5-844e-d08e1dbc78f9"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-e872c343-bb87-4ea7-8d2f-64b920bba78b" ><span id="id-e872c343-bb87-4ea7-8d2f-64b920bba78b"><img id="img-id-e872c343-bb87-4ea7-8d2f-64b920bba78b" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00014_frag_00001" data-state="slide_00014_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+<div class="jb-input jb-render jb-code" style="text-align:center">
+
+<div class="jb-input-code jb-render">
+<div class="highlight" style="background: #f8f8f8; color:#101010;display=inline-block;"><pre style="line-height: 125%"><span></span><span style="color: #408080; font-style: italic"># Inverse kinematic procedure</span>
+<span style="color: #408080; font-style: italic"># Assume: tx, ty, l1, l2</span>
+
+tx <span style="color: #666666">=</span>  math<span style="color: #666666">.</span>cos(theta1) <span style="color: #666666">*</span> l1 <span style="color: #666666">+</span> math<span style="color: #666666">.</span>cos(theta1<span style="color: #666666">+</span>theta2) <span style="color: #666666">*</span> l2
+ty <span style="color: #666666">=</span>  math<span style="color: #666666">.</span>sin(theta1) <span style="color: #666666">*</span> l1 <span style="color: #666666">+</span> math<span style="color: #666666">.</span>sin(theta1<span style="color: #666666">+</span>theta2) <span style="color: #666666">*</span> l2
+l1 <span style="color: #666666">=</span> <span style="color: #666666">0.4</span>
+l2 <span style="color: #666666">=</span> <span style="color: #666666">0.5</span>
+
+<span style="color: #408080; font-style: italic"># theta1 = 50/180.0 * math.pi</span>
+<span style="color: #408080; font-style: italic"># theta2 = 80/180.0 * math.pi</span>
+
+<span style="color: #408080; font-style: italic"># 1. Calculate l3</span>
+l3 <span style="color: #666666">=</span> math<span style="color: #666666">.</span>sqrt( tx<span style="color: #666666">**2</span> <span style="color: #666666">+</span> ty<span style="color: #666666">**2</span> )
+
+<span style="color: #408080; font-style: italic"># 2. Calculate α_2</span>
+a2 <span style="color: #666666">=</span> math<span style="color: #666666">.</span>acos( (l1<span style="color: #666666">**2</span> <span style="color: #666666">+</span> l2<span style="color: #666666">**2</span> <span style="color: #666666">-</span> l3<span style="color: #666666">**2</span>)<span style="color: #666666">/</span>(<span style="color: #666666">2*</span>l1<span style="color: #666666">*</span>l2) )
+<span style="color: #008000; font-weight: bold">print</span>(<span style="color: #BA2121">&#39;a2&#39;</span>, <span style="color: #BA2121">&quot;{0:5.2f}&quot;</span><span style="color: #666666">.</span>format(a2<span style="color: #666666">/</span>math<span style="color: #666666">.</span>pi<span style="color: #666666">*180.0</span>) )
+
+<span style="color: #408080; font-style: italic"># 3. Calculate theta_2</span>
+theta2d <span style="color: #666666">=</span> math<span style="color: #666666">.</span>pi <span style="color: #666666">-</span> a2
+<span style="color: #008000; font-weight: bold">print</span>(<span style="color: #BA2121">&#39;a2&#39;</span>, <span style="color: #BA2121">&quot;{0:5.2f}&quot;</span><span style="color: #666666">.</span>format(a2<span style="color: #666666">/</span>math<span style="color: #666666">.</span>pi<span style="color: #666666">*180.0</span>), <span style="color: #BA2121">&quot;theta2&quot;</span>, <span style="color: #BA2121">&quot;{0:5.2f}&quot;</span><span style="color: #666666">.</span>format(theta2d<span style="color: #666666">/</span>math<span style="color: #666666">.</span>pi<span style="color: #666666">*180.0</span>) )
+</pre></div>
+
+</div>
+
+</div>
+<div class="jb-print jb-render">
+<div class="jb-output jb-render code" style="text-align:center">
+<div class="jb-stdout code" style="display:inline-block; width:90%">
+<pre >
+a2 100.00
+a2 100.00 theta2 80.00
+</pre>
+</div>
+</div>
+
+</div>
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-988b9556-47cd-4f73-9f42-c58f3475e985" ><span id="id-988b9556-47cd-4f73-9f42-c58f3475e985"><img id="img-id-988b9556-47cd-4f73-9f42-c58f3475e985"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-8fa4df60-9865-4969-a03c-1c5934d5e108" ><span id="id-8fa4df60-9865-4969-a03c-1c5934d5e108"><img id="img-id-8fa4df60-9865-4969-a03c-1c5934d5e108" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00015_frag_00001" data-state="slide_00015_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+
+<h1>Law of Sines</h1>
+
+<div class="jb-text">
+\[
+  \frac{l_3}{sin(\alpha_2)} = \frac{l_2}{sin(\alpha_1)} = \frac{l_1}{sin(\alpha_3)} 
+\]
+
+<p>We can then calculate the angle \(α_1\)</p>
+</div>
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-714faad3-299f-4eb5-a58d-fa65206b608f" ><span id="id-714faad3-299f-4eb5-a58d-fa65206b608f"><img id="img-id-714faad3-299f-4eb5-a58d-fa65206b608f"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-7f8f8a9b-f1ef-42f8-b25b-6640bdd48f93" ><span id="id-7f8f8a9b-f1ef-42f8-b25b-6640bdd48f93"><img id="img-id-7f8f8a9b-f1ef-42f8-b25b-6640bdd48f93" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00016_frag_00001" data-state="slide_00016_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+<div class="jb-input jb-render jb-code" style="text-align:center">
+
+<div class="jb-input-code jb-render">
+<div style="font-size:0.5em">
+<div class="highlight" style="background: #f8f8f8; color:#101010;display=inline-block;"><pre style="line-height: 125%"><span></span><span style="color: #408080; font-style: italic"># Inverse kinematic procedure</span>
+<span style="color: #408080; font-style: italic"># Assume: tx, ty, l1, l2</span>
+
+<span style="color: #408080; font-style: italic"># tx =  math.cos(theta1) * l1 + math.cos(theta1+theta2) * l2</span>
+<span style="color: #408080; font-style: italic"># ty =  math.sin(theta1) * l1 + math.sin(theta1+theta2) * l2</span>
+
+tx <span style="color: #666666">=</span> <span style="color: #666666">0</span>
+ty <span style="color: #666666">=</span> <span style="color: #666666">0.6</span>
+l1 <span style="color: #666666">=</span> <span style="color: #666666">0.4</span>
+l2 <span style="color: #666666">=</span> <span style="color: #666666">0.5</span>
+
+<span style="color: #408080; font-style: italic"># theta1 = 50/180.0 * math.pi</span>
+<span style="color: #408080; font-style: italic"># theta2 = 80/180.0 * math.pi</span>
+
+<span style="color: #408080; font-style: italic"># 1. Calculate l3</span>
+l3 <span style="color: #666666">=</span> math<span style="color: #666666">.</span>sqrt( tx<span style="color: #666666">**2</span> <span style="color: #666666">+</span> ty<span style="color: #666666">**2</span> )
+
+<span style="color: #408080; font-style: italic"># 2. Calculate α_2</span>
+a2 <span style="color: #666666">=</span> math<span style="color: #666666">.</span>acos( (l1<span style="color: #666666">**2</span> <span style="color: #666666">+</span> l2<span style="color: #666666">**2</span> <span style="color: #666666">-</span> l3<span style="color: #666666">**2</span>)<span style="color: #666666">/</span>(<span style="color: #666666">2*</span>l1<span style="color: #666666">*</span>l2) )
+<span style="color: #008000; font-weight: bold">print</span>(<span style="color: #BA2121">&#39;a2&#39;</span>, <span style="color: #BA2121">&quot;{0:5.2f}&quot;</span><span style="color: #666666">.</span>format(a2<span style="color: #666666">/</span>math<span style="color: #666666">.</span>pi<span style="color: #666666">*180.0</span>) )
+
+<span style="color: #408080; font-style: italic"># 3. Calculate theta_2</span>
+theta2d <span style="color: #666666">=</span> math<span style="color: #666666">.</span>pi <span style="color: #666666">-</span> a2
+<span style="color: #008000; font-weight: bold">print</span>(<span style="color: #BA2121">&quot;theta2&quot;</span>, <span style="color: #BA2121">&quot;{0:5.2f}&quot;</span><span style="color: #666666">.</span>format(theta2d<span style="color: #666666">/</span>math<span style="color: #666666">.</span>pi<span style="color: #666666">*180.0</span>) )
+
+<span style="color: #408080; font-style: italic"># 4. Calculate α_1</span>
+<span style="color: #408080; font-style: italic"># Sine law: math.sin(a2)/l3 = math.sin(a1)/l2</span>
+
+a1 <span style="color: #666666">=</span> math<span style="color: #666666">.</span>asin( math<span style="color: #666666">.</span>sin(a2)<span style="color: #666666">*</span> l2<span style="color: #666666">/</span>l3 )
+<span style="color: #008000; font-weight: bold">print</span>( <span style="color: #BA2121">&quot;a1&quot;</span>, <span style="color: #BA2121">&quot;{0:5.2f}&quot;</span><span style="color: #666666">.</span>format(a1<span style="color: #666666">/</span>math<span style="color: #666666">.</span>pi <span style="color: #666666">*</span> <span style="color: #666666">180.0</span>) )
+beta <span style="color: #666666">=</span> math<span style="color: #666666">.</span>atan2( ty, tx )
+<span style="color: #008000; font-weight: bold">print</span>( <span style="color: #BA2121">&quot;beta&quot;</span>, <span style="color: #BA2121">&quot;{0:5.2f}&quot;</span><span style="color: #666666">.</span>format(beta<span style="color: #666666">/</span>math<span style="color: #666666">.</span>pi <span style="color: #666666">*</span> <span style="color: #666666">180.0</span>) )
+
+<span style="color: #408080; font-style: italic"># Calculate theta1 from a2 and beta</span>
+theta1 <span style="color: #666666">=</span> beta <span style="color: #666666">-</span> a1
+<span style="color: #008000; font-weight: bold">print</span>( f<span style="color: #BA2121">&#39;theta1: {theta1/math.pi * 180.0:5.2f}&#39;</span>)
+</pre></div>
+
+</div>
+</div>
+
+</div>
+<div class="jb-print jb-render">
+<div style="font-size:0.5em">
+<div class="jb-output jb-render code" style="text-align:center">
+<div class="jb-stdout code" style="display:inline-block; width:90%">
+<pre style="font-size:0.5em">
+a2 82.82
+theta2 97.18
+a1 55.77
+beta 90.00
+theta1: 34.23
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-5f0214fa-be63-4e45-ad89-858b63456368" ><span id="id-5f0214fa-be63-4e45-ad89-858b63456368"><img id="img-id-5f0214fa-be63-4e45-ad89-858b63456368"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-c63a72cc-ddc4-4947-917d-5f907f1b3fcf" ><span id="id-c63a72cc-ddc4-4947-917d-5f907f1b3fcf"><img id="img-id-c63a72cc-ddc4-4947-917d-5f907f1b3fcf" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+<section id="slide_00017_frag_00001" data-state="slide_00017_frag_00001">
+
+
+<!-- Header -->
+  
+
+<!-- Background -->
+
+
+<!-- Slide -->
+<div class="jb-slide">
+
+<div class="jb-output-code jb-render">
+
+<div class="jb-output jb-render">
+<div class="document" id="extension-to-three-links">
+<h1 class="title">Extension to Three Links</h1>
+<div class="jb-text docutils container">
+<p>Humanoid robots usually have three links in the lateral plane (ankle, knee, hip)</p>
+<p>In this case, we have an infinite number of solutions</p>
+<p>Must add additional constraints</p>
+<p>For example, the leg of a humanoid robot we commonly enforce</p>
+<ul class="simple">
+<li>ankle must be 90 degrees to the ground</li>
+<li>feet a parallel to the ground</li>
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+
+
+</div>
+<!-- Footer -->
+
+<div class="jb-footer-left plain">
+    <span id="id-bb842648-9599-4b1b-ae82-1d354f274a7e" ><span id="id-bb842648-9599-4b1b-ae82-1d354f274a7e"><img id="img-id-bb842648-9599-4b1b-ae82-1d354f274a7e"     src="assets/images/logo.png"/></span>
+</span>
+
+</div>
+<div class="jb-footer-right plain">
+    <span id="id-a8a130da-5e17-4837-bb03-3a64fe943504" ><span id="id-a8a130da-5e17-4837-bb03-3a64fe943504"><img id="img-id-a8a130da-5e17-4837-bb03-3a64fe943504" width="162" height="138"   src="assets/images/robbi.png"/></span>
+</span>
+
+</div>
+
+<aside class="notes">
+
+</aside>
+
+
+
+</section>
+        </div>
+        </div>
+
+        <script src="js/reveal.js"></script>
+
+        <script>
+            // More info about config & dependencies:
+            // - https://github.com/hakimel/reveal.js#configuration
+            // - https://github.com/hakimel/reveal.js#dependencies
+            Reveal.initialize({
+                math: {
+                    mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',
+                    config: 'TeX-AMS_HTML-full',  // See http://docs.mathjax.org/en/latest/config-files.html
+                    // tex2jax: {
+                    //     inlineMath: [['$', '$'], ['\(', '\)']],
+                    //     displayMath: [['$$', '$$'], ['\[', '\]']],
+                    //     processEscapes: true,
+                    //     processEnvironments: true,
+                    //     skipTags: ['script', 'noscript', 'style', 'textarea', 'code', 'pre'],
+                    //     displayAlign: 'center',
+                    // }                
+                },
+                dependencies: [
+                    { src: 'plugin/markdown/marked.js' },
+                    { src: 'plugin/markdown/markdown.js' },
+                    { src: 'plugin/notes/notes.js', async: true },
+                    { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                    { src: 'plugin/math/math.js', async: true }
+                ]
+            });
+        </script>
+
+        <script>
+            <!-- Assets -->
+var assets = {
+"robbi" : new JBImage( "robbi", "12677", "162", "138", null, null, "assets/images/robbi", "png" ),
+"logo" : new JBImage( "logo", "12033", "0", "0", null, null, "assets/images/logo", "png" ),
+"fira-logo-1" : new JBImage( "fira-logo-1", "93836", "0", "0", null, null, "assets/images/FIRA-logo-1", "png" ),
+"pairLogo" : new JBImage( "pairLogo", "63051", "0", "0", null, null, "assets/images/pairLogo", "png" ),
+"ik1" : new JBImage( "ik1", "251231", "0", "0", "https://i.postimg.cc/HnLJgZR0/image.png", null, "assets/images/ik1", "png" ),
+"ik2" : new JBImage( "ik2", "14845", "0", "0", null, null, "assets/images/ik2", "svg" ) 
+};
+var assetInstances = {
+    "id-c3810cdd-d522-43bb-8ada-6e79400be599": assets["robbi"],
+    "id-f78b637c-986e-4754-93c7-aa054803944d": assets["robbi"],
+    "id-1bd0a33a-3cb2-4c92-bb44-cba338fa39d8": assets["robbi"],
+    "id-3d35edf3-7072-435e-83aa-8f66889a6d07": assets["robbi"],
+    "id-88ecbc6f-a948-456f-bf14-72aff2ce120c": assets["robbi"],
+    "id-9feebdee-a96e-4fce-8b5e-53c587aa4e4e": assets["robbi"],
+    "id-140b2867-0fc9-4b0c-91a4-88e536ecf478": assets["robbi"],
+    "id-73ac290d-45d8-4c7e-b0fc-3a7f2a5febaf": assets["robbi"],
+    "id-8614f1df-167a-4a9d-936b-250248282f1b": assets["robbi"],
+    "id-c4232d08-f687-4975-a4dc-3e74c8a390f9": assets["robbi"],
+    "id-cff5dd05-9ad9-49a2-8eb2-d3d072c4980f": assets["robbi"],
+    "id-e872c343-bb87-4ea7-8d2f-64b920bba78b": assets["robbi"],
+    "id-8fa4df60-9865-4969-a03c-1c5934d5e108": assets["robbi"],
+    "id-7f8f8a9b-f1ef-42f8-b25b-6640bdd48f93": assets["robbi"],
+    "id-c63a72cc-ddc4-4947-917d-5f907f1b3fcf": assets["robbi"],
+    "id-a8a130da-5e17-4837-bb03-3a64fe943504": assets["robbi"],
+    "id-ac183c39-6700-4c6d-8de3-e527c4d12045": assets["logo"],
+    "id-8f55828c-7c4b-4538-bafe-48d72ea83e80": assets["logo"],
+    "id-5d1250ae-fc29-4985-a16e-bdd40dc04a49": assets["logo"],
+    "id-035da6e4-96c9-43ab-a14d-a74d2cc3da9e": assets["logo"],
+    "id-4c06fb05-28a1-475d-9fea-a5bc475c2e77": assets["logo"],
+    "id-a314b63d-d3c7-4211-85f3-b5f2287d8a37": assets["logo"],
+    "id-bfa7534a-2331-4c1d-b8b0-26986777eaf7": assets["logo"],
+    "id-14a86558-e987-49fe-95c0-6e9825bd6cf8": assets["logo"],
+    "id-ea0be73c-3c5b-4f3f-bf15-eea1d30ecf11": assets["logo"],
+    "id-a0beeb6b-07f9-410f-a069-a9da620ef694": assets["logo"],
+    "id-a9179df2-e2ae-4077-9b72-5b23f3c6e168": assets["logo"],
+    "id-56b81606-aa2d-49a5-844e-d08e1dbc78f9": assets["logo"],
+    "id-988b9556-47cd-4f73-9f42-c58f3475e985": assets["logo"],
+    "id-714faad3-299f-4eb5-a58d-fa65206b608f": assets["logo"],
+    "id-5f0214fa-be63-4e45-ad89-858b63456368": assets["logo"],
+    "id-bb842648-9599-4b1b-ae82-1d354f274a7e": assets["logo"],
+    "id-83045918-2066-4d58-91f0-69e5a94e3b9e": assets["ik1"],
+    "id-d0bcf150-17f9-4663-a110-6940995a581d": assets["ik2"]
+};
+<!-- End of Assets -->
+
+            convertURLs(assetInstances, "smart-path");
+        </script>
+        <script>
+            <!-- Characters -->
+var characters =
+{};
+<!-- End of Characters -->
+
+        </script>
+    </body>
+</html>
